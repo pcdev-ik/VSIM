@@ -3,21 +3,23 @@
 I haven't made a program since a scripting class nearly a year ago (✿◕_◕)
 I miss PyCharm... ( 〒▽〒)
 """
-'''
+
+"""
 IMPORTS
-'''
-import pprint # not a clue why I'm required to use this
+"""
 import math
-import pandas as pd
+import pprint  # not a clue why I'm required to use this
 import signal
 import sys
-import matplotlib.pyplot as plt 
 
+import matplotlib.pyplot as plt
+import pandas as pd
 
-
-'''
+"""
 BASIC INPUT HANDLER
-'''
+"""
+
+# Gets a yes/no value
 def getinput(prompt):
     while True:
         endvalue = input(prompt)
@@ -28,6 +30,7 @@ def getinput(prompt):
         else:
             print("Invalid input. Please enter 'Y' or 'N'.")
 
+# Gets a user input
 def getchoice(prompt):
     while True:
         choice = input(prompt).strip().lower()
@@ -36,48 +39,65 @@ def getchoice(prompt):
             continue
         return choice
 
+# If yes, return True
 def is_yes(answer):
     return answer.strip().lower() in ["yes", "y"]
 
 
-
-'''
+"""
 SIGINT HANDLER
-'''
+"""
+
+
 # Handle SIGINT (Ctrl+C)
 def sighandler(sig, frame):
     print("\n Interrupt received. Exiting program...")
     sys.exit(0)
+
+
 signal.signal(signal.SIGINT, sighandler)
 
 
-
-'''
+"""
 FILE MANAGEMENT
-'''
+"""
+
+
 # Auto-save asker
 def autosave_asker():
     while True:
         response = input("Would you like to turn on auto-save? (Y/n): ").strip().lower()
-        if response in ['y', 'yes']:
-            return True, 'Auto-save is enabled. Your inventory will be saved automatically after each change.'
-        elif response in ['n', 'no']:
-            return False, 'Auto-save is disabled.'
+        if response in ["y", "yes"]:
+            return (
+                True,
+                "Auto-save is enabled. Your inventory will be saved automatically after each change.",
+            )
+        elif response in ["n", "no"]:
+            return False, "Auto-save is disabled."
         else:
             print("Invalid input. Please enter 'Y' or 'N'.")
 
+
 # Auto-saver
 def autosaver(checkresult, inventory, filename):
-    if checkresult:                                                 # Check if auto-save is enabled
+    if checkresult:  # Check if auto-save is enabled
         if filename == "":
-            return                                                  # If filename is empty, do not attempt to save
-        save_records(inventory, filename)
-        print(f"Inventory auto-saved to '{filename}'.")
+            return  # If filename is empty, do not attempt to save
+        saved, message = save_records(inventory, filename)
+        print(message)
+
 
 # Save inventory to a CSV file
 def save_records(record, filename):
-    pandalibrary = pd.DataFrame.from_dict(record, orient='index')   # Convert inventory dictionary to df (turns item names into row labels)
-    pandalibrary.to_csv(filename)                                   # Save DataFrame to CSV file
+    try:
+        pandalibrary = pd.DataFrame.from_dict(
+            record, orient="index"
+        )  # Convert inventory dictionary to df (turns item names into row labels)
+        pandalibrary.to_csv(filename)  # Save DataFrame to CSV file
+        return True, f"Inventory saved to '{filename}'."
+    except (OSError, ValueError) as error:
+        return False, f"Could not save inventory to '{filename}' ({error})."
+
 
 # Name inventory function for saving to a CSV file
 def name_inventory(name):
@@ -88,15 +108,18 @@ def name_inventory(name):
         name += ".csv"
     return name
 
+
 # Load inventory from a csv file using a with statement
 def load_records(filename, inv):
     try:
-        with open(filename, 'r') as file:
-            pandalibrary = pd.read_csv(file, index_col=0)                       # Load CSV into df
+        with open(filename, "r") as file:
+            pandalibrary = pd.read_csv(file, index_col=0)  # Load CSV into df
 
             # checks for compatibility
-            required_fields = {"quantity", "price", "index"}                    
-            missing_fields = required_fields.difference(pandalibrary.columns)   # Checks required fields against actual fields
+            required_fields = {"quantity", "price", "index"}
+            missing_fields = required_fields.difference(
+                pandalibrary.columns
+            )  # Checks required fields against actual fields
             if missing_fields:
                 raise ValueError(
                     f"Missing required columns: {', '.join(sorted(missing_fields))}."
@@ -104,7 +127,9 @@ def load_records(filename, inv):
             if not pandalibrary.index.is_unique:
                 raise ValueError("Item names must be unique.")
 
-            loaded_inventory = pandalibrary.to_dict(orient='index')             # Load potential inv
+            loaded_inventory = pandalibrary.to_dict(
+                orient="index"
+            )  # Load potential inv
             validated_inventory = {}
             indices = set()
             for raw_name, item in loaded_inventory.items():
@@ -120,28 +145,34 @@ def load_records(filename, inv):
                     quantity = float(item["quantity"])
                     price = float(item["price"])
                     index = float(item["index"])
-                except (KeyError, TypeError, ValueError) as error:
+                except (KeyError, TypeError, ValueError):
                     raise ValueError(
                         f"Item '{name}' must have numeric quantity, price, and index values."
                     )
 
                 if (
-                    not math.isfinite(quantity)         # if SOMEHOW you input something infinite
-                    or not quantity.is_integer()        # or it's not an integer at all
-                    or not 0 <= quantity <= 1_000_000   # or it's negative/too large
+                    not math.isfinite(
+                        quantity
+                    )  # if SOMEHOW you input something infinite
+                    or not quantity.is_integer()  # or it's not an integer at all
+                    or not 0 <= quantity <= 1_000_000  # or it's negative/too large
                 ):
-                    raise ValueError(                   # reject
+                    raise ValueError(  # reject
                         f"Item '{name}' quantity must be an integer between 0 and 1,000,000."
                     )
-                if not math.isfinite(price) or price < 0:   #reject infinity again
-                    raise ValueError(f"Item '{name}' price must be finite and non-negative.")
+                if not math.isfinite(price) or price < 0:  # reject infinity again
+                    raise ValueError(
+                        f"Item '{name}' price must be finite and non-negative."
+                    )
                 if (
                     not math.isfinite(index)
                     or not index.is_integer()
                     or index < 1
                     or index in indices
                 ):
-                    raise ValueError(f"Item '{name}' must have a unique positive integer index.")
+                    raise ValueError(
+                        f"Item '{name}' must have a unique positive integer index."
+                    )
 
                 indices.add(index)
                 item.update(
@@ -157,9 +188,25 @@ def load_records(filename, inv):
     # file corrupted or not found error handling
     except pd.errors.EmptyDataError:
         if inv:  # if the inventory is not empty
-            return (inv, f"File '{filename}' is empty or corrupted. Keeping current inventory.")
+            return (
+                inv,
+                f"File '{filename}' is empty or corrupted. Keeping current inventory.",
+            )
         if not inv:  # if the inventory is empty
-            return ({}, f"File '{filename}' is empty or corrupted. Starting with an empty inventory.")
+            return (
+                {},
+                f"File '{filename}' is empty or corrupted. Starting with an empty inventory.",
+            )
+    except UnicodeDecodeError as error:
+        if inv:
+            return (
+                inv,
+                f"File '{filename}' could not be decoded as text. Keeping current inventory. ({error}).",
+            )
+        return (
+            {},
+            f"File '{filename}' could not be decoded as text. Starting with an empty inventory. ({error}).",
+        )
     except (pd.errors.ParserError, ValueError) as error:
         return (
             inv,
@@ -169,13 +216,27 @@ def load_records(filename, inv):
         if inv:  # if the inventory is not empty
             return (inv, f"File '{filename}' not found. Keeping current inventory.")
         if not inv:  # if the inventory is empty
-            return ({}, f"File '{filename}' not found. Starting with an empty inventory.")
+            return (
+                {},
+                f"File '{filename}' not found. Starting with an empty inventory.",
+            )
+    except OSError as error:
+        if inv:
+            return (
+                inv,
+                f"Could not read '{filename}' ({error}). Keeping current inventory.",
+            )
+        return (
+            {},
+            f"Could not read '{filename}' ({error}). Starting with an empty inventory.",
+        )
 
 
-
-'''
+"""
 ADD ITEM TO INVENTORY
-'''
+"""
+
+
 # user inputs name and function checks if it's valid
 def name_obj(inv, name):
     name = name.strip()
@@ -187,23 +248,28 @@ def name_obj(inv, name):
         return (False, "Name cannot exceed 500 characters.")
     return (True, f"Name is {name}.")
 
+
 # user inputs quantity and function checks if it's valid
 def count_obj(count):
-    if count is None:                                             # if there's nothing there, reject
+    if count is None:  # if there's nothing there, reject
         return (False, "Quantity cannot be None.")
-    if 0 <= count <= 1000000:                                     # if count is within range, accept
+    if 0 <= count <= 1000000:  # if count is within range, accept
         return (True, f"Quantity is {count}.")
     return (False, "Quantity must be between 0 and 1,000,000.")
 
+
 # user inputs price and function checks if it's valid
 def price_obj(price):
-    if price is None:                                             # if price is empty, reject
+    if price is None:  # if price is empty, reject
         return (False, "Price cannot be None.")
     if not math.isfinite(price):
-        return (False, "Price must be a finite number.")          # if price is infinite, reject
+        return (False, "Price must be a finite number.")  # if price is infinite, reject
+    if price > 1000000:
+        return (False, "Price cannot exceed 1,000,000.")  # if price is too high, reject
     if price < 0:
-        return (False, "Price cannot be negative.")               # if price is negative, reject
+        return (False, "Price cannot be negative.")  # if price is negative, reject
     return (True, f"Price is ${price:.2f}.")
+
 
 # Full validation function for adding an item to the inventory
 def validate_item(inv, name, quantity, price):
@@ -222,7 +288,11 @@ def validate_item(inv, name, quantity, price):
     except ValueError as error:
         return (False, str(error))
 
-    return (True, f"Item '{name}' with quantity {quantity} and price ${price:.2f} is valid. Adding to inventory.")
+    return (
+        True,
+        f"Item '{name}' with quantity {quantity} and price ${price:.2f} is valid. Adding to inventory.",
+    )
+
 
 # Add an item to the inventory
 def add_item(inv, name, quantity, price):
@@ -231,17 +301,24 @@ def add_item(inv, name, quantity, price):
     if not item_valid:
         return (False, validation_message)
 
-    next_index = max(
-        (item.get("index", 0) for item in inv.values()),
-        default=0,
-    ) + 1
+    next_index = (
+        max(
+            (item.get("index", 0) for item in inv.values()),
+            default=0,
+        )
+        + 1
+    )
     new_item = {"quantity": quantity, "price": price, "index": next_index}
     try:
         calculate_chart_value({**inv, name: new_item})
     except ValueError as error:
         return (False, str(error))
     inv[name] = new_item
-    return (True, f"The item '{name}' has been added with a quantity of {quantity} and a price of ${price:.2f}.")
+    return (
+        True,
+        f"The item '{name}' has been added with a quantity of {quantity} and a price of ${price:.2f}.",
+    )
+
 
 # Edit an item in the inventory
 def edit_item(inv, name):
@@ -310,25 +387,30 @@ def edit_item(inv, name):
     inv.update(updated_inventory)
     return (
         True,
-        f"Item '{name}' updated to '{updated_name}' with quantity "
-        f"{updated_quantity} and price ${updated_price:.2f}.",
+        (
+            f"Item '{name}' updated to '{updated_name}' with quantity "
+            f"{updated_quantity} and price ${updated_price:.2f}."
+        ),
     )
 
 
-
-'''
+"""
 CHART CREATION
-'''
+"""
+
+
 # check if an item within an inventory is low stock (under 5)
 def low_stock(inv, name):
     if name in inv:
         return inv[name]["quantity"] < 5
     return False
 
+
 # Calculate item value for chart
 def calculate_item_value(item):
     value = item["quantity"] * item["price"]
     return value
+
 
 # Calculate chart value
 def calculate_chart_value(inv):
@@ -337,25 +419,37 @@ def calculate_chart_value(inv):
         total_value += calculate_item_value(item)
     return total_value
 
+
 # Make chart of inventory upon request | IMPURE
 def chart(inv):
-    sorted_items = sorted(inv.items(), key=lambda entry: entry[1].get("index", 0))                          # makes sure the items are listed by index
+    sorted_items = sorted(
+        inv.items(), key=lambda entry: entry[1].get("index", 0)
+    )  # makes sure the items are listed by index
     print("\nInventory")
     print(f"{'Index':<6}{'Item':<25}{'Quantity':>10}{'Price':>11}{'Value':>14}")
     print("-" * 67)
     for name, item in sorted_items:
-        item_value = calculate_item_value(item)                                                             # Calculate the value of the item
-        total_value = calculate_chart_value(inv)                                                            # Calculate the total value of the inventory
-        item_index = item["index"]                                                                          # Call index
-        print(f"{item_index:^6}{name:<25}{item['quantity']:>10}{item['price']:>11.2f} {item_value:>13.2f}") # print rows
+        item_value = calculate_item_value(item)  # Calculate the value of the item
+        total_value = calculate_chart_value(
+            inv
+        )  # Calculate the total value of the inventory
+        item_index = item["index"]  # Call index
+        print(
+            f"{item_index:^6}{name:<25}{item['quantity']:>10}{item['price']:>11.2f} {item_value:>13.2f}"
+        )  # print rows
     print("-" * 67)
     print(f"{'Total Inventory Value:':<53}${total_value:>12.2f}")
     # flag low stock items
-    low_stock_items = [name for name, item in inv.items() if low_stock(inv, name)]                          # Create list of low stock items
-    if low_stock_items:                                                                                     # If there are low stock items
-        print("\nLow Stock:")                                                                               # Print header
-        for item in low_stock_items:                                                                        # Print each low stock item
-            print(f"- {item} ({inv[item]['quantity']} in stock)")                                           # Print item name and quantity
+    low_stock_items = [
+        name for name, item in inv.items() if low_stock(inv, name)
+    ]  # Create list of low stock items
+    if low_stock_items:  # If there are low stock items
+        print("\nLow Stock:")  # Print header
+        for item in low_stock_items:  # Print each low stock item
+            print(
+                f"- {item} ({inv[item]['quantity']} in stock)"
+            )  # Print item name and quantity
+
 
 # Delete an item from the inventory
 def delete_record(inv, name):
@@ -366,24 +460,27 @@ def delete_record(inv, name):
         return (False, f"Item '{name}' was not found.")
     del inv[name]
     return (True, f"Item '{name}' has been deleted.")
-    
 
 
-
-'''
+"""
 ORDER FUNCTIONS
-'''
+"""
+
+
 # Create available items list for order chart
 def available_items(inv):
     return [name for name, item in inv.items() if item["quantity"] > 0]
+
 
 # Validate whether a requested order quantity is allowed
 def is_valid_order_quantity(inv, name, qty):
     return name in inv and qty > 0 and qty <= inv[name]["quantity"]
 
+
 # Build a summary of the selected order items
 def build_order_summary(selected):
     return [{"item": name, "quantity": qty} for name, qty in selected.items()]
+
 
 # Remove item from inventory after order is created
 def remove_item_from_inv(inv, name, qty):
@@ -392,12 +489,16 @@ def remove_item_from_inv(inv, name, qty):
     if qty <= 0:
         return False, "Order quantity must be greater than 0."
     if qty > inv[name]["quantity"]:
-        return False, f"Not enough stock for '{name}'. Only {inv[name]['quantity']} available."
+        return (
+            False,
+            f"Not enough stock for '{name}'. Only {inv[name]['quantity']} available.",
+        )
 
     inv[name]["quantity"] -= qty
     if inv[name]["quantity"] == 0:
         del inv[name]
     return True, f"{qty} of '{name}' removed from inventory."
+
 
 # Apply the confirmed order to inventory
 def apply_order(inv, selected):
@@ -407,7 +508,10 @@ def apply_order(inv, selected):
         if qty <= 0:
             return False, "Order quantity must be greater than 0."
         if qty > inv[name]["quantity"]:
-            return False, f"Not enough stock for '{name}'. Only {inv[name]['quantity']} available."
+            return (
+                False,
+                f"Not enough stock for '{name}'. Only {inv[name]['quantity']} available.",
+            )
 
     for name, qty in selected.items():
         removed, message = remove_item_from_inv(inv, name, qty)
@@ -415,21 +519,28 @@ def apply_order(inv, selected):
             return False, message
     return True, "Order created and inventory updated."
 
-# Create an order | IMPURE
-def create_order(inv):                                                                  
-    if not inv: # if inventory is empty
-        return False, "The inventory is empty." # print rejection
 
-    selected = {}   # create empty set
+# Create an order | IMPURE
+def create_order(inv):
+    if not inv:  # if inventory is empty
+        return False, "The inventory is empty."  # print rejection
+
+    selected = {}  # create empty set
     while True:
         print("\nAvailable items:")
         for name in sorted(available_items(inv)):
-            print(f"- {name} ({inv[name]['quantity']} in stock)({selected.get(name, 0)} in order)" if name in selected else f"- {name} ({inv[name]['quantity']} in stock)")
+            print(
+                f"- {name} ({inv[name]['quantity']} in stock)({selected.get(name, 0)} in order)"
+                if name in selected
+                else f"- {name} ({inv[name]['quantity']} in stock)"
+            )
 
-        item_name = input("Enter item name to add to order (or 'done' to finish): ").strip()
+        item_name = input(
+            "Enter item name to add to order (or 'done' to finish): "
+        ).strip()
         if item_name.lower() == "done":
-            if not selected:                                                            # check if anything was ordered
-                return False, "No items were selected for the order."   
+            if not selected:  # check if anything was ordered
+                return False, "No items were selected for the order."
             break
 
         if item_name == "":
@@ -446,7 +557,7 @@ def create_order(inv):
             continue
 
         remaining_quantity = inv[item_name]["quantity"] - selected.get(item_name, 0)
-        if qty <= 0 or qty > remaining_quantity:                                        # well you have to order SOMETHING...
+        if qty <= 0 or qty > remaining_quantity:  # well you have to order SOMETHING...
             if qty <= 0:
                 print("Order quantity must be greater than 0.")
             else:
@@ -461,7 +572,7 @@ def create_order(inv):
 
     summary = build_order_summary(selected)
     print("\nOrder Summary:")
-    pprint(summary) # obligatory
+    pprint(summary)  # obligatory
 
     confirm = input("Confirm this order? (yes/no): ")
     if not is_yes(confirm):
@@ -470,10 +581,11 @@ def create_order(inv):
     return apply_order(inv, selected)
 
 
-
-'''
+"""
 SEARCH FUNCTION
-'''
+"""
+
+
 # case-insensitive search for an item in the inventory
 def search_item(inv, search_name):
     search_name = search_name.strip().lower()
@@ -481,35 +593,38 @@ def search_item(inv, search_name):
         return []
 
     matches = [
-        (name, item)
-        for name, item in inv.items()
-        if search_name in name.lower()
+        (name, item) for name, item in inv.items() if search_name in name.lower()
     ]
     return matches
 
 
-
-'''
+"""
 CHARTS
-'''
+"""
+
+
 # Item value highest-lowest
 def calculate_item_values(inv):
     return dict(
         sorted(
             (
                 (name, calculate_item_value(item))  # return the name and the value
-                for name, item in inv.items()       # for every item in the inventory
+                for name, item in inv.items()  # for every item in the inventory
             ),
-            key=lambda entry: entry[1],             # sorted by the value
-            reverse=True,                           # high to low
+            key=lambda entry: entry[1],  # sorted by the value
+            reverse=True,  # high to low
         )
     )
+
 
 # Get chart average value
 def calculate_average_item_value(inv):
     if not inv:
-        raise ValueError("Cannot calculate an average for an empty inventory.") # interrupt possible divide by 0 by forcing valueerror
-    return calculate_chart_value(inv) / len(inv) # make the average
+        raise ValueError(
+            "Cannot calculate an average for an empty inventory."
+        )  # interrupt possible divide by 0 by forcing valueerror
+    return calculate_chart_value(inv) / len(inv)  # make the average
+
 
 # Group records by stock
 def group_records_by_stock(inv):
@@ -524,17 +639,21 @@ def group_records_by_stock(inv):
             groups["in_stock"][name] = item
     return groups
 
+
 # Determine what contributes the most to the inventory
 def calculate_value_percentages(inv):
     total_value = calculate_chart_value(inv)
     if total_value == 0:
-        raise ValueError("Cannot calculate percentages when total inventory value is zero.")
+        raise ValueError(
+            "Cannot calculate percentages when total inventory value is zero."
+        )
 
     percentages = (
         (name, calculate_item_value(item) / total_value * 100)
         for name, item in inv.items()
     )
     return dict(sorted(percentages, key=lambda entry: entry[1], reverse=True))
+
 
 # Determine the highest of each value
 def calculate_highscores(inv):
@@ -556,7 +675,8 @@ def calculate_highscores(inv):
         least_expensive,
         most_stocked,
         least_stocked,
-        )
+    )
+
 
 # THE BIG CHART
 def the_big_chart(inv):
@@ -571,10 +691,12 @@ Write your option(s) separated by spaces. Use the option form (like "-dc") NOT t
 7. Percentage of inventory value    -p
 8. Highest Metrics                  -h
 """)
-    selected_options = set(chartoptions.split()) # turns the typed options into a set
+    selected_options = set(chartoptions.split())  # turns the typed options into a set
 
-    def option_selected(*aliases): # note: the asterisk here turns input into a tuple
-        return any(alias in selected_options for alias in aliases) # if anything in the list matches the given option, returns True
+    def option_selected(*aliases):  # note: the asterisk here turns input into a tuple
+        return any(
+            alias in selected_options for alias in aliases
+        )  # if anything in the list matches the given option, returns True
 
     # option default chart
     if option_selected("1", "chart", "-dc"):
@@ -625,7 +747,7 @@ Write your option(s) separated by spaces. Use the option form (like "-dc") NOT t
                     print(f"{name:<25}{item['quantity']:>10}")
             else:
                 print("No records.")
-    
+
     # option percentage distribution
     if option_selected("7", "percentage", "-p"):
         print("\nPercentage of Inventory Value")
@@ -667,6 +789,7 @@ Write your option(s) separated by spaces. Use the option form (like "-dc") NOT t
 
     print("\n")
 
+
 # Export a dashboard containing everything in the_big_chart
 def export_analytics(inv):
     if not inv:
@@ -684,8 +807,17 @@ def export_analytics(inv):
     stock_groups = group_records_by_stock(inv)
     total_value = calculate_chart_value(inv)
 
-    figure, axes = plt.subplots(3, 2, figsize=(18, 15)) # make a 3x2 grid of plots that's 18x15 inches
-    inventory_axis, item_values_axis, stock_axis, percentages_axis, summary_axis, metrics_axis = (axes.flat) # flatten the axes array for easier access
+    figure, axes = plt.subplots(
+        3, 2, figsize=(18, 15)
+    )  # make a 3x2 grid of plots that's 18x15 inches
+    (
+        inventory_axis,
+        item_values_axis,
+        stock_axis,
+        percentages_axis,
+        summary_axis,
+        metrics_axis,
+    ) = axes.flat  # flatten the axes array for easier access
 
     # Value by item
     inventory_axis.bar(names, values)
@@ -700,9 +832,13 @@ def export_analytics(inv):
     item_values_axis.set_xlabel("Inventory Value ($)")
 
     # Sort by stock
-    stock_labels = ("High stock (20+)", "In stock (5-19)", "Low stock (<5)")    # the words you see
-    stock_keys = ("high_stock", "in_stock", "low_stock")                        # the backend titles
-    stock_counts = [len(stock_groups[key]) for key in stock_keys]               
+    stock_labels = (
+        "High stock (20+)",
+        "In stock (5-19)",
+        "Low stock (<5)",
+    )  # the words you see
+    stock_keys = ("high_stock", "in_stock", "low_stock")  # the backend titles
+    stock_counts = [len(stock_groups[key]) for key in stock_keys]
     stock_axis.bar(stock_labels, stock_counts)
     stock_axis.set_title("Records by Stock Group")
     stock_axis.set_ylabel("Number of Records")
@@ -719,7 +855,7 @@ def export_analytics(inv):
         percentages_axis.axis("equal")
         percentages_axis.set_title("Percentage of Inventory Value")
     else:
-        # Reject if inventory value is 0 
+        # Reject if inventory value is 0
         percentages_axis.text(
             0.5,
             0.5,
@@ -730,7 +866,7 @@ def export_analytics(inv):
         percentages_axis.set_title("Percentage of Inventory Value")
         percentages_axis.axis("off")
 
-    # Text panel for inventory summary 
+    # Text panel for inventory summary
     summary_axis.axis("off")
     summary_axis.set_title("Inventory Summary")
     summary_axis.text(
@@ -742,7 +878,10 @@ def export_analytics(inv):
                 f"Number of records: {len(inv)}",
                 f"Average item value: ${calculate_average_item_value(inv):.2f}",
                 f"Total inventory value: ${total_value:.2f}",
-            )),va="top",)
+            )
+        ),
+        va="top",
+    )
 
     (
         first_added,
@@ -769,7 +908,10 @@ def export_analytics(inv):
                 f"Least expensive: {least_expensive}",
                 f"Most stocked: {most_stocked}",
                 f"Least stocked: {least_stocked}",
-            )),va="top",)
+            )
+        ),
+        va="top",
+    )
 
     figure.tight_layout()
 
@@ -785,17 +927,19 @@ def export_analytics(inv):
             print(f"Could not save chart to '{filename}': {error}")
         else:
             print(f"Chart saved to '{filename}'.")
-        plt.show() # for graphical interfaces
+        plt.show()  # for graphical interfaces
     finally:
         # Release the figure even if displaying it raises an error.
         plt.close(figure)
-        
 
-'''
+
+"""
 MAIN MENU
-'''
+"""
+
+
 # choices
-def main(): # this big function that I hate | IMPURE
+def main():  # this big function that I hate | IMPURE
     autosavecheck = False, "Auto-save is disabled."  # Initialize auto-save check
     filename = ""
     Responses1 = ["1", "add record", "add"]
@@ -806,8 +950,8 @@ def main(): # this big function that I hate | IMPURE
     Responses6 = ["6", "import records", "import"]
     Responses7 = ["7", "export records", "export"]
     Responses8 = ["8", "quit", "exit"]
-    inventory = {}  
-    while True: # main menu loop
+    inventory = {}
+    while True:  # main menu loop
         print(r"""
 .-. .-. .----..-..-.   .-.
 | | | |{ {__  | ||  `.'  |
@@ -822,8 +966,8 @@ Very Simple Inventory Manager
 6. Import Records
 7. Export Records
 8. Quit""")
-        main_choice = input("Please select an option: ") # user selects2
-        if main_choice.lower() in Responses1:            # add record
+        main_choice = input("Please select an option: ")  # user selects2
+        if main_choice.lower() in Responses1:  # add record
             while True:
                 name = input("Name of Item: ")
                 try:
@@ -838,15 +982,19 @@ Very Simple Inventory Manager
                     print("Please enter a valid number.")
                     continue
 
-                item_valid, validation_message = add_item(inventory, name, quantity, price)
+                item_valid, validation_message = add_item(
+                    inventory, name, quantity, price
+                )
                 print(validation_message)
                 if item_valid:
-                    autosaver(autosavecheck[0], inventory, filename)  # Auto-save if enabled
+                    autosaver(
+                        autosavecheck[0], inventory, filename
+                    )  # Auto-save if enabled
                     break
 
         # VIEW RECORDS
-        elif main_choice.lower() in Responses2:          # view records
-            if not inventory:                            # if the inventory is empty
+        elif main_choice.lower() in Responses2:  # view records
+            if not inventory:  # if the inventory is empty
                 print("The inventory is empty.")
             # MAKE CHART
             else:
@@ -857,39 +1005,51 @@ Very Simple Inventory Manager
 3. Go Back
 """).lower().strip()
                     if smladv in ["1", "simple chart", "simple"]:
-                        chart(inventory)                         # Print item name and quantity
+                        chart(inventory)  # Print item name and quantity
                         break
                     if smladv in ["2", "advanced chart", "advanced"]:
-                        the_big_chart(inventory)                 # Enter hell i.e. (print the big chart)
+                        the_big_chart(
+                            inventory
+                        )  # Enter hell i.e. (print the big chart)
                         break
                     if smladv in ["3", "back", "exit", "go back"]:
                         break
- 
 
             # SEARCH RECORDS
-            search_choice = input("Would you like to search for an item? (Y/n): ").strip().lower()
-            if search_choice in ['y', 'yes']:
+            search_choice = (
+                input("Would you like to search for an item? (Y/n): ").strip().lower()
+            )
+            if search_choice in ["y", "yes"]:
                 while True:
                     search_name = input("Search: ").strip()
                     matches = search_item(inventory, search_name)
                     if matches:
                         for name, item in matches:
-                            print(f"Item: {name}, Quantity: {item['quantity']}, Price: ${item['price']:.2f}")
+                            print(
+                                f"Item: {name}, Quantity: {item['quantity']}, Price: ${item['price']:.2f}"
+                            )
                     else:
                         print(f"No items found matching '{search_name}'.")
-                    reSearch_choice = input("Would you like to search for another item? (Y/n): ").strip().lower()
-                    if reSearch_choice not in ['y', 'yes']:
+                    reSearch_choice = (
+                        input("Would you like to search for another item? (Y/n): ")
+                        .strip()
+                        .lower()
+                    )
+                    if reSearch_choice not in ["y", "yes"]:
                         print("Returning to main menu.")
                         break
 
-
         # EDIT RECORDS
-        elif main_choice.lower() in Responses3:          # edit records
+        elif main_choice.lower() in Responses3:  # edit records
             if not inventory:
                 print("The inventory is empty.")
             else:
-                editchoice = input("Would you like to see a list of items? (Y/n): ").strip().lower()
-                if editchoice in ['y', 'yes']:
+                editchoice = (
+                    input("Would you like to see a list of items? (Y/n): ")
+                    .strip()
+                    .lower()
+                )
+                if editchoice in ["y", "yes"]:
                     chart(inventory)
                 name_to_edit = input("Name of Item to edit: ").strip()
                 if name_to_edit not in inventory:
@@ -899,7 +1059,7 @@ Very Simple Inventory Manager
                     print(message)
                     if updated:
                         autosaver(autosavecheck[0], inventory, filename)
-            
+
         # DELETE RECORDS
         elif main_choice.lower() in Responses4:
             if not inventory:
@@ -911,7 +1071,9 @@ Very Simple Inventory Manager
                 elif name_to_delete not in inventory:
                     print(f"Item '{name_to_delete}' was not found.")
                 else:
-                    confirm = input(f"Are you sure you want to delete '{name_to_delete}'? (yes/no): ")
+                    confirm = input(
+                        f"Are you sure you want to delete '{name_to_delete}'? (yes/no): "
+                    )
                     if is_yes(confirm):
                         result = delete_record(inventory, name_to_delete)
                         print(result[1])
@@ -929,7 +1091,9 @@ Very Simple Inventory Manager
 
         # IMPORT RECORDS
         elif main_choice.lower() in Responses6:
-            filename = input("Enter filename to import inventory (default: inventory.csv): ")
+            filename = input(
+                "Enter filename to import inventory (default: inventory.csv): "
+            )
             filename = name_inventory(filename)
             inventory, message = load_records(filename, inventory)
             print(message)
@@ -945,10 +1109,12 @@ Very Simple Inventory Manager
 1. Export Records
 2. Export Analytics""")
                 if expchoice in ["1", "export records", "records"]:
-                    potentialname = input("Enter filename to save inventory (default: inventory.csv): ")
+                    potentialname = input(
+                        "Enter filename to save inventory (default: inventory.csv): "
+                    )
                     filename = name_inventory(potentialname)
-                    save_records(inventory, filename)
-                    print(f"Inventory saved to '{filename}'.")
+                    saved, message = save_records(inventory, filename)
+                    print(message)
                     autosavecheck = autosave_asker()
                     print(autosavecheck[1])
                 elif expchoice in ["2", "export analytics", "analytics"]:
@@ -956,25 +1122,34 @@ Very Simple Inventory Manager
 
         # QUIT
         elif main_choice.lower() in Responses8:
-            if inventory:       # Check if the user created any records
-                confirm = input("Would you like to save your inventory? (Y/n): ").strip().lower()
-                if confirm in ['y', 'yes']:
-                    potentialname = input("Enter filename to save inventory (default: inventory.csv): ")
+            if inventory:  # Check if the user created any records
+                confirm = (
+                    input("Would you like to save your inventory? (Y/n): ")
+                    .strip()
+                    .lower()
+                )
+                if confirm in ["y", "yes"]:
+                    potentialname = input(
+                        "Enter filename to save inventory (default: inventory.csv): "
+                    )
                     filename = name_inventory(potentialname)
-                    save_records(inventory, filename)
-                    print(f"Inventory saved to '{filename}'.")
+                    saved, message = save_records(inventory, filename)
+                    print(message)
                     autosavecheck = autosave_asker()
                     print(autosavecheck[1])
                     print("Goodbye!")
                     break
-                if confirm in ['n', 'no']:
+                if confirm in ["n", "no"]:
                     print("Goodbye!")
                     break
-            if not inventory:   # Just exit if there's no inventory
+                else: 
+                    print("Invalid input. Please enter 'Y' or 'N'.")
+            if not inventory:  # Just exit if there's no inventory
                 print("Goodbye!")
                 break
         else:
             print("Invalid option. Please try again.")
+
 
 if __name__ == "__main__":
     main()
