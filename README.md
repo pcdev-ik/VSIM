@@ -1,6 +1,6 @@
 # VSIM
 
-
+Version 1.0
 ### Overview
 Very Simple Inventory Manager (VSIM) is a command-line inventory software with a focus on record management and analytics. Compatible .csv files can be imported, but it is recommended to create and save an inventory file first to understand the format.
 
