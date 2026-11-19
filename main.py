@@ -66,7 +66,7 @@ FILE MANAGEMENT
 # Auto-save asker
 def autosave_asker():
     while True:
-        response = input("Would you like to turn on auto-save? (Y/n): ").strip().lower()
+        response = input("Would you like to turn on auto-save? If not, your files may not be saved on program exit. (Y/n): ").strip().lower()
         if response in ["y", "yes"]:
             return (
                 True,
