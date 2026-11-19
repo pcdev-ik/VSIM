@@ -54,10 +54,8 @@ python -m pip install -r requirements.txt
 Run the application from the project directory:
 
 ```bash
-python Main.py
+python main.py
 ```
-
-The entry-point filename is `Main.py` with a capital `M`. On Linux and macOS, `main.py` is a different filename.
 
 Use menu option `8` to quit. CSV inventory data is stored in the filename you enter when importing or exporting.
 
@@ -73,4 +71,4 @@ python -m pytest
 
 - If `python` is not found, use `python3` on Linux/macOS or `py` on Windows.
 - If PowerShell blocks activation, run `Set-ExecutionPolicy -Scope Process Unrestricted` and activate the environment again.
-- If you change directories, the terminal must be in the project directory (the directory containing `Main.py` and `requirements.txt`) when running the commands above.
+- If you change directories, the terminal must be in the project directory (the directory containing `main.py` and `requirements.txt`) when running the commands above.
