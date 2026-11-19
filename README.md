@@ -16,7 +16,7 @@ The graphical analytics chart requires a desktop session.
 Open a terminal and enter the project directory:
 
 ```bash
-cd /path/to/PyCapstone
+cd /path/to/VSIM
 ```
 
 Create a virtual environment:
